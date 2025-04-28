@@ -4,6 +4,7 @@ GID=$(shell id -g)
 DOCKER_BUILDKIT=1
 DOCKER_TAG:=$(shell pwd | md5sum | cut -f1 -d ' ')
 DOCKER_RUN_FLAGS+=-v $(PWD):/workspace
+DOCKER_RUN_FLAGS+=-v $(HOME)/.zsh_history:/.zsh_history
 DOCKER_RUN_FLAGS+=-it
 DOCKER_RUN_FLAGS+=--rm
 DOCKER_RUN_FLAGS+=--user $(UID):$(GID)
@@ -29,7 +30,7 @@ $(TARGETS): setup-docker
 	@docker run $(DOCKER_RUN_FLAGS) $(DOCKER_TAG) make -f Makefile.main $@
 
 enter: setup-docker
-	@docker run $(DOCKER_RUN_FLAGS) $(DOCKER_TAG) /bin/sh
+	@docker run $(DOCKER_RUN_FLAGS) $(DOCKER_TAG) /bin/zsh
 #==============================================================
 
 endif
