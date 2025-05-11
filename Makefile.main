@@ -2,7 +2,7 @@ run:
 	@cargo run
 
 build:
-	@cargo build
+	@cargo build --target aarch64-apple-darwin
 
 test:
 	@cargo test
