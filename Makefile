@@ -1,41 +1,23 @@
-UID=$(shell id -u)
-GID=$(shell id -g)
+BINARY_NAME:=evergreenlsp
 
-DOCKER_BUILDKIT=1
-DOCKER_TAG:=$(shell pwd | md5sum | cut -f1 -d ' ')
-DOCKER_RUN_FLAGS+=-v /var/run/docker.sock:/var/run/docker.sock
-DOCKER_RUN_FLAGS+=-v $(PWD):/workspace
-DOCKER_RUN_FLAGS+=-v $(HOME)/.zsh_history:/.zsh_history
-DOCKER_RUN_FLAGS+=-it
-DOCKER_RUN_FLAGS+=--rm
-DOCKER_RUN_FLAGS+=--user $(UID):$(GID)
+.PHONY: run build test lint format clean setup
 
-TARGETS=run build test lint format clean setup
+build:
+	goreleaser build --clean --single-target --snapshot --output dist/$(BINARY_NAME)
 
-ifeq ($(SKIP_DOCKER), true)
+clean:
+	go clean
+	rm -rf dist
 
-#================No Docker/Already in container================
-$(TARGETS):
-	make -f Makefile.main $@
-#==============================================================
+setup:
+	go mod tidy
 
-else
+lint:
+	golangci-lint run
 
-#========================Use Docker============================
-default: enter
+lint-fix:
+	golangci-lint run --fix
 
-setup-docker:
-	docker buildx build --build-arg UID=$(UID) --build-arg GID=$(GID) --tag $(DOCKER_TAG) .
-
-$(TARGETS): setup-docker
-	@docker run $(DOCKER_RUN_FLAGS) $(DOCKER_TAG) make -f Makefile.main $@
-
-enter: setup-docker
-	@docker run $(DOCKER_RUN_FLAGS) $(DOCKER_TAG) /bin/zsh
-
-watch:
-	@cargo watch -x run
-#==============================================================
-
-endif
+test:
+	go test ./...
 

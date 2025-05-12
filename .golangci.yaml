@@ -1,0 +1,75 @@
+issues:
+  include:
+    # comment on exported (.+) should be of the form "(.+)..."
+    - EXC0014
+linters:
+  enable-all: true
+  disable:
+    # Cyclomatic dependency checking is unnecessary here
+    - cyclop
+    # We don't want to specify every valid dependency
+    - depguard
+    # False positive issues
+    - exhaustive
+    # Overly verbose code
+    - exhaustruct
+    # Allow print messages
+    - forbidigo
+    # Nitpick
+    - funlen
+    # We don't use ginkgo
+    - ginkgolinter
+    # We don't need to worry about cognitive complexity here
+    - gocognit
+    # Nitpick
+    - godot
+    # We use TODO comments
+    - godox
+    # Using gofumpt instead
+    - gofmt
+    # Long lines are fine
+    - lll
+    # Too much false-positive potential
+    - misspell
+    # False positive issues
+    - musttag
+    # Leave formatting up to gofumpt
+    - nlreturn
+    # Deprecated
+    - tenv
+    # Nitpick
+    - varnamelen
+    # Let gofumpt do the formatting
+    - whitespace
+    # Let gofumpt do the formatting
+    - wsl
+linters-settings:
+  mnd:
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
+    # Ignore file mode numbers as they are commonly known
+    ignored-numbers:
+      - "0o600"
+      - "0o666"
+      - "0o755"
+  loggercheck:
+    # The sloglint linter already handles this
+    slog: false
+
+  perfsprint:
+    integer-format: true
+    int-conversion: true
+    error-format: true
+    err-error: false
+    errorf: true
+    string-format: true
+    sprintf1: true
+    # Using format string is more flexible to changes
+    strconcat: false
+    bool-format: true
+    hex-format: true

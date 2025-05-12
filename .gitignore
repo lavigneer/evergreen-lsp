@@ -1,1 +1,2 @@
-/target
+# Added by goreleaser init:
+dist/
