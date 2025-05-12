@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"math"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
+	"github.com/evergreen-ci/evergreen/agent/command"
 	"github.com/evergreen-ci/evergreen/model"
+	"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
+	"github.com/goccy/go-yaml/parser"
 	"github.com/sourcegraph/jsonrpc2"
-	"gopkg.in/yaml.v3"
 )
 
 type Handler struct {
@@ -82,56 +84,56 @@ func (h *Handler) handleTextDocumentCompletion(ctx context.Context, conn *jsonrp
 		return nil, nil
 	}
 
-	var root yaml.Node
-	err := yaml.Unmarshal([]byte(doc.Text), &root) // root.Kind will be yaml.DocumentNode
+	astFile, err := parser.ParseBytes([]byte(doc.Text), parser.ParseComments)
 	if err != nil {
 		return nil, err
 	}
-	node := FindDeepestOverlappingNode(&root, int(params.Position.Line)+1, int(params.Position.Character))
-	for c, n := range node {
-		slog.Info(fmt.Sprintf("###########%d", c), "value", n.Value, "kind", n.Kind, "tag",  n.Tag)
+	// node := FindDeepestOverlappingNode(&astFile.Docs[0], int(params.Position.Line)+1, int(params.Position.Character))
+	visitor := &NodePathVisitor{
+		targetLine:   int(params.Position.Line) + 1,
+		targetColumn: int(params.Position.Character),
+	}
+
+	root := astFile.Docs[0]
+	// Traverse the AST with the visitor
+	ast.Walk(visitor, root)
+	if visitor.foundNode == nil {
+		return nil, yaml.ErrNotFoundNode
+	}
+
+	parent := ast.Parent(root, visitor.foundNode)
+	if parent.Type() == ast.MappingValueType {
+		parentNode := parent.(*ast.MappingValueNode)
+		switch parentNode.Key.String() {
+		case "func":
+			items := make([]protocol.CompletionItem, 0, len(h.project.Functions))
+			for name, f := range h.project.Functions {
+				l := f.List()
+				for c := range l {
+					l[c].ParamsYAML = ""
+				}
+				detail, _ := yaml.MarshalContext(ctx, l, yaml.UseLiteralStyleIfMultiline(true))
+				items = append(items, protocol.CompletionItem{Label: name, Kind: protocol.CompletionItemKindFunction, Documentation: string(detail)})
+			}
+			return protocol.CompletionList{
+				IsIncomplete: false,
+				Items:        items,
+			}, nil
+		case "command":
+			commands := command.RegisteredCommandNames()
+			items := make([]protocol.CompletionItem, 0, len(commands))
+			for _, c := range commands {
+				items = append(items, protocol.CompletionItem{Label: c, Kind: protocol.CompletionItemKindFunction})
+			}
+			return protocol.CompletionList{
+				IsIncomplete: false,
+				Items:        items,
+			}, nil
+		}
+
 	}
 	return nil, nil
 }
-
-// type nodeLocationVisitor struct {
-// 	nodes          []*ast.Node
-// 	targetPosition protocol.Position
-// }
-//
-// func (n *nodeLocationVisitor) Visit(node ast.Node) ast.Visitor {
-// 	tkn := node.GetToken()
-// 	nextTkn := tkn.Next
-//
-// 	if n.targetPosition.Line < uint32(tkn.Position.Line) || n.targetPosition.Line > uint32(nextTkn.Position.Line) {
-// 		return nil
-// 	}
-//
-// 	if n.targetPosition.Line < uint32(tkn.Position.Line) || n.targetPosition.Line > uint32(nextTkn.Position.Line) {
-// 		return nil
-// 	}
-// 	return n
-// }
-//
-// func findTokenAtPosition(docText string, position protocol.Position) (*token.Token, error) {
-// 	tokens := lexer.Tokenize(docText)
-// 	for _, t := range tokens {
-// 		line := int(position.Line + 1)
-// 		ch := int(position.Character + 1)
-// 		if t.Position.Line > line {
-// 			break
-// 		}
-// 		if t.Position.Line < line {
-// 			continue
-// 		}
-// 		slog.Info("TOKEN", "token", fmt.Sprintf(
-// 			"[TYPE]:%q [CHARTYPE]:%q [INDICATOR]:%q [VALUE]:%q [ORG]:%q [POS(line:column:level:offset)]: %d:%d:%d:%d\n",
-// 			t.Type, t.CharacterType, t.Indicator, t.Value, t.Origin, t.Position.Line, t.Position.Column, t.Position.IndentLevel, t.Position.Offset,
-// 		))
-//
-// 	}
-// 	return nil, nil
-// }
 
 func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
 	var params protocol.InitializeParams
@@ -193,71 +195,42 @@ func (h *Handler) handleTextDocumentDidOpen(_ context.Context, conn *jsonrpc2.Co
 	return nil, nil
 }
 
-// DoesPositionOverlap determines if the position (line, column) overlaps with the range of the node's position.
-func DoesPositionOverlap(node *yaml.Node, targetLine, targetColumn int) bool {
-	// A node starts at (node.Line, node.Column).
-	startLine := node.Line
-	startColumn := node.Column
-
-	// Calculate the approximate "end" position:
-	// If the node has children, its end position can be approximated
-	// based on the last child node's `Line`.
-	endLine := node.Line
-	endColumn := node.Column
-
-	// Special handling for scalar nodes
-	if node.Kind == yaml.ScalarNode && node.Value != "" {
-		// Scalars are single-line and their end column is determined by the content length
-		endColumn = startColumn + len(node.Value) - 1
-	} else if len(node.Content) > 0 {
-		// For compound nodes, calculate end position based on the last child
-		lastChild := node.Content[len(node.Content)-1]
-		endLine = lastChild.Line
-		endColumn = math.MaxInt
-	}
-
-	// Check if the target position is within the node's range.
-	if targetLine > startLine || (targetLine == startLine && targetColumn >= startColumn) {
-		if targetLine < endLine || (targetLine == endLine && targetColumn <= endColumn) {
-			return true
-		}
-	}
-
-	return false
+// NodePathVisitor is a custom visitor to find the path to a YAML node based on position
+type NodePathVisitor struct {
+	targetLine   int
+	targetColumn int
+	foundNode    ast.Node
 }
 
-// FindDeepestOverlappingNode finds the deepest (leaf) node that overlaps the specified position.
-func FindDeepestOverlappingNode(node *yaml.Node, targetLine, targetColumn int) []*yaml.Node {
-	var overlappingNode []*yaml.Node
-	// Check if the current node overlaps with the desired position
-	if DoesPositionOverlap(node, targetLine, targetColumn) {
-		overlappingNode = append(overlappingNode, node)
-	}
+// Visit is called for each AST node during traversal
+func (v *NodePathVisitor) Visit(node ast.Node) ast.Visitor {
+	// Check if the position overlaps with this node
+	tkn := node.GetToken()
+	start := tkn.Position
 
-	// Traverse recursively into child nodes
-	for _, child := range node.Content {
-		found := FindDeepestOverlappingNode(child, targetLine, targetColumn)
-		if len(found) > 0 {
-			overlappingNode = append(overlappingNode, found...)
+	if start.Line <= v.targetLine && start.Column <= v.targetColumn {
+		switch n := node.(type) {
+		case *ast.CommentNode:
+			v.foundNode = n
+		case *ast.NullNode:
+			v.foundNode = n
+		case *ast.IntegerNode:
+			v.foundNode = n
+		case *ast.FloatNode:
+			v.foundNode = n
+		case *ast.StringNode:
+			v.foundNode = n
+		case *ast.MergeKeyNode:
+			v.foundNode = n
+		case *ast.BoolNode:
+			v.foundNode = n
+		case *ast.InfinityNode:
+			v.foundNode = n
+		case *ast.NanNode:
+			v.foundNode = n
+		case *ast.LiteralNode:
+			v.foundNode = n
 		}
 	}
-
-	return overlappingNode
-
-	//
-	// // Traverse child nodes to check for deeper overlaps.
-	// var overlappingNode []*yaml.Node
-	// for _, child := range node.Content {
-	// 	foundNode := FindDeepestOverlappingNode(child, targetLine, targetColumn)
-	// 	if foundNode != nil {
-	// 		overlappingNode = append(overlappingNode, foundNode...)
-	// 	}
-	// }
-	//
-	// // If no deeper overlapping node is found, check the current node.
-	// if DoesPositionOverlap(node, targetLine, targetColumn) {
-	// 	overlappingNode = append(overlappingNode, node)
-	// }
-	//
-	// return overlappingNode
+	return v
 }

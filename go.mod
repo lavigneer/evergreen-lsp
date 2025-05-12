@@ -7,6 +7,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.0.0 // indirect
+	github.com/99designs/gqlgen v0.17.66 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c // indirect
 	github.com/PuerkitoBio/rehttp v1.4.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
@@ -68,11 +69,13 @@ require (
 	github.com/evergreen-ci/lru v0.0.0-20250224223041-c0d64dfbee1d // indirect
 	github.com/evergreen-ci/negroni v1.0.1-0.20211028183800-67b6d7c2c035 // indirect
 	github.com/evergreen-ci/pail v0.0.0-20250501154731-3b1a60d7772f // indirect
+	github.com/evergreen-ci/poplar v0.0.0-20250313160224-22f0e4e98238 // indirect
 	github.com/evergreen-ci/tarjan v0.0.0-20170824211642-fcd3f3321826 // indirect
 	github.com/evergreen-ci/timber v0.0.0-20250225175618-52d1e1841945 // indirect
 	github.com/evergreen-ci/utility v0.0.0-20250424141600-fde5f3a474b7 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fuyufjh/splunk-hec-go v0.4.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -104,11 +107,13 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mongodb/amboy v0.0.0-20250313150805-ef0cd9968322 // indirect
 	github.com/mongodb/anser v0.0.0-20250324144457-fcc2c57eee09 // indirect
+	github.com/mongodb/ftdc v0.0.0-20220401165013-13e4af55e809 // indirect
 	github.com/mongodb/grip v0.0.0-20250410161241-7cb1e90e324d // indirect
 	github.com/mongodb/jasper v0.0.0-20250304205544-71af207b4383 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/nwaples/rardecode v1.1.2 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417 // indirect
+	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431 // indirect
 	github.com/peterhellberg/link v1.2.0 // indirect
 	github.com/phyber/negroni-gzip v1.0.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.9 // indirect
@@ -123,6 +128,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/slack-go/slack v0.12.3 // indirect
+	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
@@ -131,6 +137,7 @@ require (
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/urfave/cli v1.22.16 // indirect
 	github.com/urfave/negroni v1.0.0 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.26 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
