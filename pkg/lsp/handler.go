@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
-	"github.com/evergreen-ci/evergreen/model"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -18,17 +17,15 @@ type Handler struct {
 	conn             *jsonrpc2.Conn
 	request          chan protocol.DocumentURI
 	workspaceFolders []protocol.WorkspaceFolder
-	project          *model.Project
-	rootYamlPath     string
-	textDocuments    map[protocol.DocumentURI]protocol.TextDocumentItem
+	workspace        *Workspace
 }
 
 //nolint:ireturn
 func NewHandler() jsonrpc2.Handler {
 	handler := &Handler{
-		request:       make(chan protocol.DocumentURI),
-		textDocuments: make(map[protocol.DocumentURI]protocol.TextDocumentItem),
+		request: make(chan protocol.DocumentURI),
 	}
+	// go handler.linter()
 	return jsonrpc2.HandlerWithError(handler.Handle)
 }
 
@@ -43,9 +40,9 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 	case protocol.MethodInitialized:
 		return nil, nil
 	case protocol.MethodTextDocumentDidOpen:
-		return nil, h.handleTextDocumentDidOpen(req)
+		return nil, h.handleTextDocumentDidOpen(ctx, req)
 	case protocol.MethodTextDocumentDidChange:
-		return nil, h.handleTextDocumentDidChange(req)
+		return nil, h.handleTextDocumentDidChange(ctx, req)
 	case protocol.MethodTextDocumentCompletion:
 		return h.handleTextDocumentCompletion(ctx, req)
 	case protocol.MethodTextDocumentDefinition:
@@ -72,6 +69,7 @@ func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req
 
 	slog.Debug("Initialized", "workspaceFolders", params.WorkspaceFolders)
 
+	var workspacePath string
 	for _, f := range params.WorkspaceFolders {
 		fPath := uriToPath(f.URI)
 		dirEntries, err := os.ReadDir(fPath)
@@ -80,20 +78,16 @@ func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req
 		}
 		for _, d := range dirEntries {
 			if d.Name() == "evergreen.yml" || d.Name() == "evergreen.yaml" {
-				h.rootYamlPath = filepath.Join(fPath, d.Name())
+				workspacePath = filepath.Join(fPath, d.Name())
 				break
 			}
 		}
-		if h.rootYamlPath != "" {
+		if workspacePath != "" {
 			break
 		}
 	}
-	cfg, err := os.ReadFile(h.rootYamlPath)
-	if err != nil {
-		return nil, err
-	}
-	h.project = &model.Project{}
-	_, err = model.LoadProjectInto(ctx, cfg, nil, "id", h.project)
+	h.workspace = NewWorkspace(workspacePath)
+	err := h.workspace.Init(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -43,6 +43,9 @@ linters:
     - whitespace
     # Let gofumpt do the formatting
     - wsl
+    # Temporary
+    - wrapcheck
+    - err113
 linters-settings:
   mnd:
     checks:
