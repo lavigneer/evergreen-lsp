@@ -10,11 +10,7 @@ import (
 	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
-	"github.com/evergreen-ci/evergreen/agent/command"
 	"github.com/evergreen-ci/evergreen/model"
-	"github.com/goccy/go-yaml"
-	"github.com/goccy/go-yaml/ast"
-	"github.com/goccy/go-yaml/parser"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -27,6 +23,7 @@ type Handler struct {
 	textDocuments    map[protocol.DocumentURI]protocol.TextDocumentItem
 }
 
+//nolint:ireturn
 func NewHandler() jsonrpc2.Handler {
 	handler := &Handler{
 		request:       make(chan protocol.DocumentURI),
@@ -36,6 +33,8 @@ func NewHandler() jsonrpc2.Handler {
 }
 
 // Handle implements jsonrpc2.Handler.
+//
+//nolint:nilnil
 func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (any, error) {
 	slog.Debug("Handling request", "request", req)
 	switch req.Method {
@@ -44,11 +43,13 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 	case protocol.MethodInitialized:
 		return nil, nil
 	case protocol.MethodTextDocumentDidOpen:
-		return h.handleTextDocumentDidOpen(ctx, conn, req)
+		return nil, h.handleTextDocumentDidOpen(req)
 	case protocol.MethodTextDocumentDidChange:
-		return h.handleTextDocumentDidChange(ctx, conn, req)
+		return nil, h.handleTextDocumentDidChange(req)
 	case protocol.MethodTextDocumentCompletion:
-		return h.handleTextDocumentCompletion(ctx, conn, req)
+		return h.handleTextDocumentCompletion(ctx, req)
+	case protocol.MethodTextDocumentDefinition:
+		return h.handleTextDocumentDefinition(ctx, req)
 	}
 	return nil, &jsonrpc2.Error{
 		Code:    jsonrpc2.CodeMethodNotFound,
@@ -56,86 +57,7 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 	}
 }
 
-func (h *Handler) handleTextDocumentDidChange(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (any, error) {
-	var params protocol.DidChangeTextDocumentParams
-	if err := json.Unmarshal(*req.Params, &params); err != nil {
-		return nil, err
-	}
-	doc, ok := h.textDocuments[params.TextDocument.URI]
-	if !ok {
-		panic("fix this")
-	}
-	if doc.Version > params.TextDocument.Version {
-		panic("uh oh! Old version came later!")
-	}
-	doc.Version = params.TextDocument.Version
-	doc.Text = params.ContentChanges[0].Text
-	h.textDocuments[params.TextDocument.URI] = doc
-	return nil, nil
-}
-
-func (h *Handler) handleTextDocumentCompletion(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (any, error) {
-	var params protocol.CompletionParams
-	if err := json.Unmarshal(*req.Params, &params); err != nil {
-		return nil, err
-	}
-	doc, ok := h.textDocuments[params.TextDocument.URI]
-	if !ok {
-		return nil, nil
-	}
-
-	astFile, err := parser.ParseBytes([]byte(doc.Text), parser.ParseComments)
-	if err != nil {
-		return nil, err
-	}
-	// node := FindDeepestOverlappingNode(&astFile.Docs[0], int(params.Position.Line)+1, int(params.Position.Character))
-	visitor := &NodePathVisitor{
-		targetLine:   int(params.Position.Line) + 1,
-		targetColumn: int(params.Position.Character),
-	}
-
-	root := astFile.Docs[0]
-	// Traverse the AST with the visitor
-	ast.Walk(visitor, root)
-	if visitor.foundNode == nil {
-		return nil, yaml.ErrNotFoundNode
-	}
-
-	parent := ast.Parent(root, visitor.foundNode)
-	if parent.Type() == ast.MappingValueType {
-		parentNode := parent.(*ast.MappingValueNode)
-		switch parentNode.Key.String() {
-		case "func":
-			items := make([]protocol.CompletionItem, 0, len(h.project.Functions))
-			for name, f := range h.project.Functions {
-				l := f.List()
-				for c := range l {
-					l[c].ParamsYAML = ""
-				}
-				detail, _ := yaml.MarshalContext(ctx, l, yaml.UseLiteralStyleIfMultiline(true))
-				items = append(items, protocol.CompletionItem{Label: name, Kind: protocol.CompletionItemKindFunction, Documentation: string(detail)})
-			}
-			return protocol.CompletionList{
-				IsIncomplete: false,
-				Items:        items,
-			}, nil
-		case "command":
-			commands := command.RegisteredCommandNames()
-			items := make([]protocol.CompletionItem, 0, len(commands))
-			for _, c := range commands {
-				items = append(items, protocol.CompletionItem{Label: c, Kind: protocol.CompletionItemKindFunction})
-			}
-			return protocol.CompletionList{
-				IsIncomplete: false,
-				Items:        items,
-			}, nil
-		}
-
-	}
-	return nil, nil
-}
-
-func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (any, error) {
 	var params protocol.InitializeParams
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
@@ -182,55 +104,7 @@ func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req
 			CompletionProvider: &protocol.CompletionOptions{
 				TriggerCharacters: strings.Split("qwertyuiopasdfghjklzxcvbnm. ", ""),
 			},
+			DefinitionProvider: &protocol.DefinitionOptions{},
 		},
 	}, nil
-}
-
-func (h *Handler) handleTextDocumentDidOpen(_ context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
-	var params protocol.DidOpenTextDocumentParams
-	if err := json.Unmarshal(*req.Params, &params); err != nil {
-		return nil, err
-	}
-	h.textDocuments[params.TextDocument.URI] = params.TextDocument
-	return nil, nil
-}
-
-// NodePathVisitor is a custom visitor to find the path to a YAML node based on position
-type NodePathVisitor struct {
-	targetLine   int
-	targetColumn int
-	foundNode    ast.Node
-}
-
-// Visit is called for each AST node during traversal
-func (v *NodePathVisitor) Visit(node ast.Node) ast.Visitor {
-	// Check if the position overlaps with this node
-	tkn := node.GetToken()
-	start := tkn.Position
-
-	if start.Line <= v.targetLine && start.Column <= v.targetColumn {
-		switch n := node.(type) {
-		case *ast.CommentNode:
-			v.foundNode = n
-		case *ast.NullNode:
-			v.foundNode = n
-		case *ast.IntegerNode:
-			v.foundNode = n
-		case *ast.FloatNode:
-			v.foundNode = n
-		case *ast.StringNode:
-			v.foundNode = n
-		case *ast.MergeKeyNode:
-			v.foundNode = n
-		case *ast.BoolNode:
-			v.foundNode = n
-		case *ast.InfinityNode:
-			v.foundNode = n
-		case *ast.NanNode:
-			v.foundNode = n
-		case *ast.LiteralNode:
-			v.foundNode = n
-		}
-	}
-	return v
 }
