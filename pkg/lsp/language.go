@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
 	"github.com/evergreen-ci/evergreen/agent/command"
@@ -156,6 +157,67 @@ func (h *Handler) handleTextDocumentHover(ctx context.Context, req *jsonrpc2.Req
 			}, nil
 		}
 
+	}
+	return nil, nil
+}
+
+func (h *Handler) handleTextDocumentReferences(ctx context.Context, req *jsonrpc2.Request) (any, error) {
+	var params protocol.ReferenceParams
+	if err := json.Unmarshal(*req.Params, &params); err != nil {
+		return nil, err
+	}
+	visitor, err := h.getNodeAtPosition(params.TextDocument.URI, params.Position)
+	if err != nil {
+		return nil, err
+	}
+
+	parent := ast.Parent(visitor.RootNode, visitor.FoundNode)
+	nodePath := visitor.FoundNode.GetPath()
+	if strings.HasPrefix(nodePath, fmt.Sprintf("$.functions.%s", visitor.FoundNode.String())) {
+		nodes := ast.Filter(ast.MappingValueType, visitor.RootNode)
+		token := visitor.FoundNode.GetToken()
+		line := uint32(token.Position.Line) - 1
+		character := uint32(token.Position.IndentNum)
+		references := []protocol.Location{
+			{
+				URI: params.TextDocument.URI,
+				Range: protocol.Range{
+					Start: protocol.Position{
+						Line:      line,
+						Character: character,
+					},
+					End: protocol.Position{
+						Line:      line,
+						Character: character + uint32(len(token.Origin)) - 1,
+					},
+				},
+			},
+		}
+		for _, n := range nodes {
+			mn := n.(*ast.MappingValueNode)
+			if mn.Key.String() == "func" && mn.Value.String() == visitor.FoundNode.String() {
+				vn := mn.Value
+				token := vn.GetToken()
+				line := uint32(token.Position.Line) - 1
+				character := uint32(token.Position.Column) - 1
+				references = append(references, protocol.Location{
+					URI: params.TextDocument.URI,
+					Range: protocol.Range{
+						Start: protocol.Position{
+							Line:      line,
+							Character: character,
+						},
+						End: protocol.Position{
+							Line:      line,
+							Character: character + uint32(len(token.Origin)) - 1,
+						},
+					},
+				})
+
+			}
+
+		}
+		return references, nil
 	}
 	return nil, nil
 }

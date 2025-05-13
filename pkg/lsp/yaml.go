@@ -55,7 +55,7 @@ func nodeToDedentedYaml(ctx context.Context, n ast.Node) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defYaml, err := yaml.MarshalContext(ctx, val)
+	defYaml, err := yaml.MarshalContext(ctx, val, yaml.UseLiteralStyleIfMultiline(true))
 	if err != nil {
 		return "", err
 	}

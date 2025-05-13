@@ -52,6 +52,8 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		return h.handleTextDocumentDefinition(ctx, req)
 	case protocol.MethodTextDocumentHover:
 		return h.handleTextDocumentHover(ctx, req)
+	case protocol.MethodTextDocumentReferences:
+		return h.handleTextDocumentReferences(ctx, req)
 	}
 	return nil, &jsonrpc2.Error{
 		Code:    jsonrpc2.CodeMethodNotFound,
@@ -108,6 +110,7 @@ func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req
 			},
 			DefinitionProvider: &protocol.DefinitionOptions{},
 			HoverProvider:      &protocol.HoverOptions{},
+			ReferencesProvider: &protocol.ReferenceOptions{},
 		},
 	}, nil
 }
