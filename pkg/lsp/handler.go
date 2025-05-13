@@ -50,6 +50,8 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		return h.handleTextDocumentCompletion(ctx, req)
 	case protocol.MethodTextDocumentDefinition:
 		return h.handleTextDocumentDefinition(ctx, req)
+	case protocol.MethodTextDocumentHover:
+		return h.handleTextDocumentHover(ctx, req)
 	}
 	return nil, &jsonrpc2.Error{
 		Code:    jsonrpc2.CodeMethodNotFound,
@@ -105,6 +107,7 @@ func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req
 				TriggerCharacters: strings.Split("qwertyuiopasdfghjklzxcvbnm. ", ""),
 			},
 			DefinitionProvider: &protocol.DefinitionOptions{},
+			HoverProvider:      &protocol.HoverOptions{},
 		},
 	}, nil
 }

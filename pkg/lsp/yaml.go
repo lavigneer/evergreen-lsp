@@ -1,6 +1,11 @@
 package lsp
 
-import "github.com/goccy/go-yaml/ast"
+import (
+	"context"
+
+	"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
+)
 
 // NodePathVisitor is a custom visitor to find the path to a YAML node based on position
 type NodePathVisitor struct {
@@ -41,4 +46,18 @@ func (v *NodePathVisitor) Visit(node ast.Node) ast.Visitor {
 		}
 	}
 	return v
+}
+
+func nodeToDedentedYaml(ctx context.Context, n ast.Node) (string, error) {
+	// Convert to an any to force yaml to dedent
+	var val any
+	err := yaml.NodeToValue(n, &val)
+	if err != nil {
+		return "", err
+	}
+	defYaml, err := yaml.MarshalContext(ctx, val)
+	if err != nil {
+		return "", err
+	}
+	return string(defYaml), nil
 }

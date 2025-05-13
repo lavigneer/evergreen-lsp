@@ -116,6 +116,50 @@ func (h *Handler) handleTextDocumentDefinition(ctx context.Context, req *jsonrpc
 	return nil, nil
 }
 
+func (h *Handler) handleTextDocumentHover(ctx context.Context, req *jsonrpc2.Request) (any, error) {
+	var params protocol.HoverParams
+	if err := json.Unmarshal(*req.Params, &params); err != nil {
+		return nil, err
+	}
+	visitor, err := h.getNodeAtPosition(params.TextDocument.URI, params.Position)
+	if err != nil {
+		return nil, err
+	}
+
+	parent := ast.Parent(visitor.RootNode, visitor.FoundNode)
+	if parent.Type() == ast.MappingValueType {
+		//nolint:forcetypeassert // we already check the type above
+		parentNode := parent.(*ast.MappingValueNode)
+		switch parentNode.Key.String() {
+		case "func":
+			fs := visitor.FoundNode.String()
+			nodePath, err := yaml.PathString(fmt.Sprintf("$.functions.%s", fs))
+			if err != nil {
+				return nil, err
+			}
+			n, err := nodePath.FilterNode(visitor.RootNode)
+			if err != nil {
+				return nil, err
+			}
+			if n == nil {
+				return nil, yaml.ErrNotFoundNode
+			}
+			defYaml, err := nodeToDedentedYaml(ctx, n)
+			if err != nil {
+				return nil, err
+			}
+			return protocol.Hover{
+				Contents: protocol.MarkupContent{
+					Kind:  protocol.PlainText,
+					Value: string(defYaml),
+				},
+			}, nil
+		}
+
+	}
+	return nil, nil
+}
+
 var ErrDocumentNotFound = errors.New("document not found")
 
 func (h *Handler) getNodeAtPosition(docURI protocol.DocumentURI, position protocol.Position) (*NodePathVisitor, error) {
