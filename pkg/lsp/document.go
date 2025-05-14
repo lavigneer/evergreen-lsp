@@ -25,3 +25,21 @@ func (h *Handler) handleTextDocumentDidOpen(ctx context.Context, req *jsonrpc2.R
 	err := h.workspace.AddDocument(ctx, params.TextDocument)
 	return err
 }
+
+func (h *Handler) handleTextDocumentDidSave(ctx context.Context, req *jsonrpc2.Request) error {
+	var params protocol.DidSaveTextDocumentParams
+	if err := json.Unmarshal(*req.Params, &params); err != nil {
+		return err
+	}
+	doc, ok := h.workspace.TextDocuments[params.TextDocument.URI]
+	if !ok {
+		return ErrDocumentNotFound
+	}
+	err := h.conn.Notify(ctx, protocol.MethodTextDocumentPublishDiagnostics, protocol.PublishDiagnosticsParams{
+		URI: doc.URI,
+		//nolint:gosec
+		Version:     uint32(doc.Version),
+		Diagnostics: doc.Diagnostics,
+	})
+	return err
+}

@@ -30,7 +30,13 @@ func (w *Workspace) Init(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = model.LoadProjectInto(ctx, cfg, nil, "id", w.Project)
+	_, err = model.LoadProjectInto(ctx, cfg, &model.GetProjectOpts{
+		ReadFileFrom: model.ReadFromLocal,
+		RemotePath:   w.path,
+		Ref: &model.ProjectRef{
+			RemotePath: w.path,
+		},
+	}, "id", w.Project)
 	if err != nil {
 		return err
 	}
@@ -142,6 +148,7 @@ func (d *WorkspaceDocument) Parse() error {
 	return nil
 }
 
+//nolint:ireturn
 func (d *WorkspaceDocument) Visit(node ast.Node) ast.Visitor {
 	switch n := node.(type) {
 	case *ast.StringNode:
@@ -154,6 +161,9 @@ func (d *WorkspaceDocument) Visit(node ast.Node) ast.Visitor {
 				Location: d.locationFromNode(n),
 			})
 			d.References[nodeStr] = references
+		}
+	case *ast.MappingValueNode:
+		if n.Key.GetToken().Value == "func" {
 		}
 	case *ast.MappingNode:
 		if n.Path == "$.functions" {

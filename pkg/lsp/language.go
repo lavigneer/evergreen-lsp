@@ -26,6 +26,7 @@ func (h *Handler) handleTextDocumentCompletion(ctx context.Context, req *jsonrpc
 	if err != nil {
 		return nil, err
 	}
+	r := doc.locationFromNode(node).Range
 	items := []protocol.CompletionItem{}
 	parent := ast.Parent(doc.RootNode(), node)
 	if parent.Type() == ast.MappingValueType {
@@ -33,7 +34,7 @@ func (h *Handler) handleTextDocumentCompletion(ctx context.Context, req *jsonrpc
 		parentNode := parent.(*ast.MappingValueNode)
 		switch parentNode.Key.String() {
 		case "func":
-			items = funcComplete(ctx, h.workspace.Project)
+			items = funcComplete(ctx, h.workspace.Project, r)
 		case "command":
 			items = commandComplete()
 		}
@@ -45,7 +46,7 @@ func (h *Handler) handleTextDocumentCompletion(ctx context.Context, req *jsonrpc
 	}, nil
 }
 
-func funcComplete(ctx context.Context, project *model.Project) []protocol.CompletionItem {
+func funcComplete(ctx context.Context, project *model.Project, r protocol.Range) []protocol.CompletionItem {
 	items := make([]protocol.CompletionItem, 0, len(project.Functions))
 	for name, f := range project.Functions {
 		l := f.List()
@@ -53,7 +54,19 @@ func funcComplete(ctx context.Context, project *model.Project) []protocol.Comple
 			l[c].ParamsYAML = ""
 		}
 		detail, _ := yaml.MarshalContext(ctx, l, yaml.UseLiteralStyleIfMultiline(true))
-		items = append(items, protocol.CompletionItem{Label: name, Kind: protocol.CompletionItemKindFunction, Documentation: string(detail)})
+		items = append(items, protocol.CompletionItem{
+			Label:            name,
+			Kind:             protocol.CompletionItemKindFunction,
+			Documentation:    string(detail),
+			InsertTextFormat: protocol.InsertTextFormatSnippet,
+			FilterText:       name,
+			TextEdit: &protocol.TextEditOrInsertReplaceEdit{
+				TextEdit: &protocol.TextEdit{
+					NewText: name,
+					Range:   r,
+				},
+			},
+		})
 	}
 	return items
 }

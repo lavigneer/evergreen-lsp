@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -25,7 +25,6 @@ func NewHandler() jsonrpc2.Handler {
 	handler := &Handler{
 		request: make(chan protocol.DocumentURI),
 	}
-	// go handler.linter()
 	return jsonrpc2.HandlerWithError(handler.Handle)
 }
 
@@ -43,6 +42,8 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		return nil, h.handleTextDocumentDidOpen(ctx, req)
 	case protocol.MethodTextDocumentDidChange:
 		return nil, h.handleTextDocumentDidChange(ctx, req)
+	case protocol.MethodTextDocumentDidSave:
+		return nil, h.handleTextDocumentDidSave(ctx, req)
 	case protocol.MethodTextDocumentCompletion:
 		return h.handleTextDocumentCompletion(ctx, req)
 	case protocol.MethodTextDocumentDefinition:
@@ -69,24 +70,21 @@ func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req
 
 	slog.Debug("Initialized", "workspaceFolders", params.WorkspaceFolders)
 
-	var workspacePath string
+	var configPath string
 	for _, f := range params.WorkspaceFolders {
 		fPath := uriToPath(f.URI)
-		dirEntries, err := os.ReadDir(fPath)
-		if err != nil {
-			continue
-		}
-		for _, d := range dirEntries {
+		filepath.WalkDir(fPath, func(path string, d fs.DirEntry, err error) error {
 			if d.Name() == "evergreen.yml" || d.Name() == "evergreen.yaml" {
-				workspacePath = filepath.Join(fPath, d.Name())
-				break
+				configPath = path
+				return filepath.SkipAll
 			}
-		}
-		if workspacePath != "" {
+			return nil
+		})
+		if configPath != "" {
 			break
 		}
 	}
-	h.workspace = NewWorkspace(workspacePath)
+	h.workspace = NewWorkspace(configPath)
 	err := h.workspace.Init(ctx)
 	if err != nil {
 		return nil, err
