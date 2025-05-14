@@ -13,7 +13,7 @@ func (h *Handler) handleTextDocumentDidChange(ctx context.Context, req *jsonrpc2
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return err
 	}
-	err := h.workspace.UpdateDocument(ctx, params.TextDocument, params.ContentChanges[0])
+	_, err := h.workspace.UpdateDocument(ctx, params.TextDocument, params.ContentChanges[0])
 	return err
 }
 
@@ -22,7 +22,16 @@ func (h *Handler) handleTextDocumentDidOpen(ctx context.Context, req *jsonrpc2.R
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return err
 	}
-	err := h.workspace.AddDocument(ctx, params.TextDocument)
+	doc, err := h.workspace.AddDocument(ctx, params.TextDocument)
+	if err != nil {
+		return err
+	}
+	err = h.conn.Notify(ctx, protocol.MethodTextDocumentPublishDiagnostics, protocol.PublishDiagnosticsParams{
+		URI: doc.URI,
+		//nolint:gosec
+		Version:     uint32(doc.Version),
+		Diagnostics: doc.Diagnostics,
+	})
 	return err
 }
 

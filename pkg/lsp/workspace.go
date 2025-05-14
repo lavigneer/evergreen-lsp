@@ -2,9 +2,12 @@ package lsp
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"slices"
 
 	"github.com/a-h/templ/lsp/protocol"
+	"github.com/evergreen-ci/evergreen/agent/command"
 	"github.com/evergreen-ci/evergreen/model"
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -43,25 +46,25 @@ func (w *Workspace) Init(ctx context.Context) error {
 	return nil
 }
 
-func (w *Workspace) AddDocument(ctx context.Context, doc protocol.TextDocumentItem) error {
+func (w *Workspace) AddDocument(ctx context.Context, doc protocol.TextDocumentItem) (*WorkspaceDocument, error) {
 	d := &WorkspaceDocument{TextDocumentItem: doc, Workspace: w}
 	w.TextDocuments[doc.URI] = d
 	err := d.Parse()
-	return err
+	return d, err
 }
 
 func (w *Workspace) RemoveDocument(ctx context.Context, docID protocol.TextDocumentIdentifier) {
 	delete(w.TextDocuments, docID.URI)
 }
 
-func (w *Workspace) UpdateDocument(ctx context.Context, docID protocol.VersionedTextDocumentIdentifier, textChanges protocol.TextDocumentContentChangeEvent) error {
+func (w *Workspace) UpdateDocument(ctx context.Context, docID protocol.VersionedTextDocumentIdentifier, textChanges protocol.TextDocumentContentChangeEvent) (*WorkspaceDocument, error) {
 	doc, ok := w.TextDocuments[docID.URI]
 	if !ok {
 		panic("fix this")
 	}
 	doc.UpdateText(textChanges.Text, docID.Version)
 	err := doc.Parse()
-	return err
+	return doc, err
 }
 
 func (w *Workspace) References(ctx context.Context, nodeStr string) []protocol.Location {
@@ -163,7 +166,32 @@ func (d *WorkspaceDocument) Visit(node ast.Node) ast.Visitor {
 			d.References[nodeStr] = references
 		}
 	case *ast.MappingValueNode:
-		if n.Key.GetToken().Value == "func" {
+		switch n.Key.GetToken().Value {
+		case "func":
+			nodeStr := n.Value.GetToken().Value
+			_, ok := d.Workspace.Project.Functions[nodeStr]
+			if !ok {
+				loc := d.locationFromNode(n.Value)
+				d.Diagnostics = append(d.Diagnostics, protocol.Diagnostic{
+					Source:  "evergreenlsp",
+					Message: fmt.Sprintf("function %s is not defined", nodeStr),
+					Range:   loc.Range,
+				})
+			}
+
+		case "command":
+			nodeStr := n.Value.GetToken().Value
+			commands := command.RegisteredCommandNames()
+			ok := slices.Contains(commands, nodeStr)
+			if !ok {
+				loc := d.locationFromNode(n.Value)
+				d.Diagnostics = append(d.Diagnostics, protocol.Diagnostic{
+					Source:  "evergreenlsp",
+					Message: fmt.Sprintf("command %s is not defined", nodeStr),
+					Range:   loc.Range,
+				})
+			}
+
 		}
 	case *ast.MappingNode:
 		if n.Path == "$.functions" {
