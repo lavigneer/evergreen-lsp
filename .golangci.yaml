@@ -2,6 +2,12 @@ issues:
   include:
     # comment on exported (.+) should be of the form "(.+)..."
     - EXC0014
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: cmd/
+      linters:
+        # Used for cmd setup
+        - gochecknoinits
 linters:
   enable-all: true
   disable:
@@ -19,6 +25,8 @@ linters:
     - funlen
     # We don't use ginkgo
     - ginkgolinter
+    # We want to use globals
+    - gochecknoglobals
     # We don't need to worry about cognitive complexity here
     - gocognit
     # Nitpick
@@ -27,6 +35,8 @@ linters:
     - godox
     # Using gofumpt instead
     - gofmt
+    # Too noisy for this project
+    - ireturn
     # Long lines are fine
     - lll
     # Too much false-positive potential
@@ -35,6 +45,8 @@ linters:
     - musttag
     # Leave formatting up to gofumpt
     - nlreturn
+    # False positives when using necessary snake case
+    - tagliatelle
     # Deprecated
     - tenv
     # Nitpick

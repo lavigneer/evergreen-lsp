@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
+	"github.com/lavigneer/evergreen-lsp/pkg/project"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -17,7 +18,7 @@ type Handler struct {
 	conn             *jsonrpc2.Conn
 	request          chan protocol.DocumentURI
 	workspaceFolders []protocol.WorkspaceFolder
-	workspace        *Workspace
+	project          *project.Project
 }
 
 //nolint:ireturn
@@ -84,8 +85,8 @@ func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req
 			break
 		}
 	}
-	h.workspace = NewWorkspace(configPath)
-	err := h.workspace.Init(ctx)
+	h.project = project.New(configPath)
+	err := h.project.Init(ctx)
 	if err != nil {
 		return nil, err
 	}

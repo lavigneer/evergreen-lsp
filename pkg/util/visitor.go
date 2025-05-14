@@ -1,9 +1,6 @@
-package lsp
+package util
 
 import (
-	"context"
-
-	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 )
 
@@ -46,18 +43,4 @@ func (v *NodePathVisitor) Visit(node ast.Node) ast.Visitor {
 		}
 	}
 	return v
-}
-
-func nodeToDedentedYaml(ctx context.Context, n ast.Node) (string, error) {
-	// Convert to an any to force yaml to dedent
-	var val any
-	err := yaml.NodeToValue(n, &val)
-	if err != nil {
-		return "", err
-	}
-	defYaml, err := yaml.MarshalContext(ctx, val, yaml.UseLiteralStyleIfMultiline(true))
-	if err != nil {
-		return "", err
-	}
-	return string(defYaml), nil
 }

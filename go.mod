@@ -2,7 +2,11 @@ module github.com/lavigneer/evergreen-lsp
 
 require (
 	github.com/a-h/templ v0.3.865
+	github.com/evergreen-ci/evergreen v0.0.0-20250509230847-2dc0d30a321b
+	github.com/goccy/go-yaml v1.17.1
+	github.com/mongodb/grip v0.0.0-20250410161241-7cb1e90e324d
 	github.com/sourcegraph/jsonrpc2 v0.2.0
+	github.com/spf13/cobra v1.9.1
 )
 
 require (
@@ -50,7 +54,7 @@ require (
 	github.com/coreos/go-oidc v2.2.1+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dghubble/oauth1 v0.7.2 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
@@ -63,7 +67,6 @@ require (
 	github.com/evergreen-ci/bond v0.0.0-20250225175518-482c13099622 // indirect
 	github.com/evergreen-ci/certdepot v0.0.0-20250313151408-76b756321eda // indirect
 	github.com/evergreen-ci/cocoa v0.0.0-20250225172339-717c91acad92 // indirect
-	github.com/evergreen-ci/evergreen v0.0.0-20250509230847-2dc0d30a321b // indirect
 	github.com/evergreen-ci/gimlet v0.0.0-20250410201752-38682bd5bae1 // indirect
 	github.com/evergreen-ci/juniper v0.0.0-20230901183147-c805ea7351aa // indirect
 	github.com/evergreen-ci/lru v0.0.0-20250224223041-c0d64dfbee1d // indirect
@@ -80,7 +83,6 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/goccy/go-yaml v1.17.1 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
@@ -96,6 +98,7 @@ require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
@@ -108,7 +111,6 @@ require (
 	github.com/mongodb/amboy v0.0.0-20250313150805-ef0cd9968322 // indirect
 	github.com/mongodb/anser v0.0.0-20250324144457-fcc2c57eee09 // indirect
 	github.com/mongodb/ftdc v0.0.0-20220401165013-13e4af55e809 // indirect
-	github.com/mongodb/grip v0.0.0-20250410161241-7cb1e90e324d // indirect
 	github.com/mongodb/jasper v0.0.0-20250304205544-71af207b4383 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/nwaples/rardecode v1.1.2 // indirect
@@ -129,6 +131,7 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/slack-go/slack v0.12.3 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect

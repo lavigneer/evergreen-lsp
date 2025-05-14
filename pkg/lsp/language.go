@@ -18,15 +18,15 @@ func (h *Handler) handleTextDocumentCompletion(ctx context.Context, req *jsonrpc
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
 	}
-	doc, ok := h.workspace.TextDocuments[params.TextDocument.URI]
+	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
 	if !ok {
 		return nil, ErrDocumentNotFound
 	}
-	node, err := doc.nodeFromLocation(params.Position)
+	node, err := doc.NodeFromLocation(params.Position)
 	if err != nil {
 		return nil, err
 	}
-	r := doc.locationFromNode(node).Range
+	r := doc.LocationFromNode(node).Range
 	items := []protocol.CompletionItem{}
 	parent := ast.Parent(doc.RootNode(), node)
 	if parent.Type() == ast.MappingValueType {
@@ -34,7 +34,7 @@ func (h *Handler) handleTextDocumentCompletion(ctx context.Context, req *jsonrpc
 		parentNode := parent.(*ast.MappingValueNode)
 		switch parentNode.Key.String() {
 		case "func":
-			items = funcComplete(ctx, h.workspace.Project, r)
+			items = funcComplete(ctx, h.project.Data, r)
 		case "command":
 			items = commandComplete()
 		}
@@ -85,17 +85,17 @@ func (h *Handler) handleTextDocumentDefinition(ctx context.Context, req *jsonrpc
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
 	}
-	doc, ok := h.workspace.TextDocuments[params.TextDocument.URI]
+	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
 	if !ok {
 		return nil, ErrDocumentNotFound
 	}
-	node, err := doc.nodeFromLocation(params.Position)
+	node, err := doc.NodeFromLocation(params.Position)
 	if err != nil {
 		return nil, err
 	}
 
 	nodeStr := node.String()
-	def := h.workspace.Definition(ctx, nodeStr)
+	def := h.project.Definition(ctx, nodeStr)
 	return def, nil
 }
 
@@ -105,17 +105,17 @@ func (h *Handler) handleTextDocumentHover(ctx context.Context, req *jsonrpc2.Req
 		return nil, err
 	}
 
-	doc, ok := h.workspace.TextDocuments[params.TextDocument.URI]
+	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
 	if !ok {
 		return nil, ErrDocumentNotFound
 	}
-	node, err := doc.nodeFromLocation(params.Position)
+	node, err := doc.NodeFromLocation(params.Position)
 	if err != nil {
 		return nil, err
 	}
 
 	nodeStr := node.String()
-	def := h.workspace.Hover(ctx, nodeStr)
+	def := h.project.Hover(ctx, nodeStr)
 	return def, nil
 }
 
@@ -124,17 +124,17 @@ func (h *Handler) handleTextDocumentReferences(ctx context.Context, req *jsonrpc
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
 	}
-	doc, ok := h.workspace.TextDocuments[params.TextDocument.URI]
+	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
 	if !ok {
 		return nil, ErrDocumentNotFound
 	}
-	node, err := doc.nodeFromLocation(params.Position)
+	node, err := doc.NodeFromLocation(params.Position)
 	if err != nil {
 		return nil, err
 	}
 
 	nodeStr := node.String()
-	refs := h.workspace.References(ctx, nodeStr)
+	refs := h.project.References(ctx, nodeStr)
 	return refs, nil
 }
 

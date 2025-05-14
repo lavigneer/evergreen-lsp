@@ -13,7 +13,7 @@ func (h *Handler) handleTextDocumentDidChange(ctx context.Context, req *jsonrpc2
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return err
 	}
-	_, err := h.workspace.UpdateDocument(ctx, params.TextDocument, params.ContentChanges[0])
+	_, err := h.project.UpdateDocument(ctx, params.TextDocument, params.ContentChanges[0])
 	return err
 }
 
@@ -22,7 +22,7 @@ func (h *Handler) handleTextDocumentDidOpen(ctx context.Context, req *jsonrpc2.R
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return err
 	}
-	doc, err := h.workspace.AddDocument(ctx, params.TextDocument)
+	doc, err := h.project.AddDocument(ctx, params.TextDocument)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (h *Handler) handleTextDocumentDidSave(ctx context.Context, req *jsonrpc2.R
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return err
 	}
-	doc, ok := h.workspace.TextDocuments[params.TextDocument.URI]
+	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
 	if !ok {
 		return ErrDocumentNotFound
 	}
