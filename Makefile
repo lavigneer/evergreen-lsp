@@ -11,6 +11,7 @@ clean:
 
 setup:
 	go mod tidy
+	cd ./client/vscode && npm i
 
 lint:
 	golangci-lint run
@@ -21,3 +22,7 @@ lint-fix:
 test:
 	go test ./...
 
+build-vscode: build
+	mkdir -p ./client/vscode/dist
+	cp ./dist/evergreenlsp ./client/vscode/dist/evergreenlsp
+	cd ./client/vscode && npm run package

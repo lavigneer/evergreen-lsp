@@ -1,0 +1,40 @@
+{
+	"name": "evergreen-lsp",
+	"description": "Language Server for Evergreen CI",
+	"version": "0.0.1",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/lavigneer/evergreen-lsp"
+	},
+	"engines": {
+		"vscode": "^1.74.0"
+	},
+	"activationEvents": ["onLanguage:yaml"],
+	"main": "./dist/extension.js",
+	"dependencies": {
+		"@vscode/vsce": "^3.4.0",
+		"vscode-languageclient": "^9.0.1"
+	},
+	"devDependencies": {
+		"esbuild": "0.25.4"
+	},
+	"scripts": {
+		"compile": "node esbuild.js",
+		"package": "node esbuild.js --production && vsce package --skip-license --out dist/"
+	},
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Evergreen LSP Configuration",
+			"properties": {
+				"evergreen-lsp.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": ["off", "messages", "verbose"],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
+			}
+		}
+	}
+}

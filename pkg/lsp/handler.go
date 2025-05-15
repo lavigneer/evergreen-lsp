@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
@@ -14,17 +15,19 @@ import (
 )
 
 type Handler struct {
-	conn          *jsonrpc2.Conn
-	request       chan protocol.DocumentURI
-	config        *config.Config
-	openDocuments map[protocol.DocumentURI]struct{}
+	conn              *jsonrpc2.Conn
+	request           chan protocol.DocumentURI
+	config            *config.Config
+	openDocuments     map[protocol.DocumentURI]struct{}
+	shutdownRequested bool
 }
 
 //nolint:ireturn
 func NewHandler() jsonrpc2.Handler {
 	handler := &Handler{
-		request:       make(chan protocol.DocumentURI),
-		openDocuments: make(map[protocol.DocumentURI]struct{}),
+		request:           make(chan protocol.DocumentURI),
+		openDocuments:     make(map[protocol.DocumentURI]struct{}),
+		shutdownRequested: false,
 	}
 	return jsonrpc2.HandlerWithError(handler.Handle)
 }
@@ -39,6 +42,14 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		return h.handleInitialize(ctx, conn, req)
 	case protocol.MethodInitialized:
 		return nil, nil
+	case protocol.MethodShutdown:
+		h.shutdownRequested = true
+		return nil, nil
+	case protocol.MethodExit:
+		if h.shutdownRequested {
+			os.Exit(0)
+		}
+		os.Exit(1)
 	case protocol.MethodTextDocumentDidOpen:
 		return nil, h.handleTextDocumentDidOpen(ctx, req)
 	case protocol.MethodTextDocumentDidClose:
