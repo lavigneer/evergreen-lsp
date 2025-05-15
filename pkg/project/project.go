@@ -3,16 +3,13 @@ package project
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
 	"github.com/a-h/templ/lsp/uri"
-	"github.com/evergreen-ci/evergreen/agent/command"
 	"github.com/evergreen-ci/evergreen/model"
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -198,7 +195,6 @@ type Document struct {
 	References  map[string][]DocumentNodeLocation
 	Definitions map[string]DocumentNodeLocation
 	Hovers      map[string]DocumentNodeLocation
-	Diagnostics []protocol.Diagnostic
 	AST         *ast.File
 	Workspace   *Project
 }
@@ -226,7 +222,6 @@ func (d *Document) Parse() error {
 	d.Definitions = make(map[string]DocumentNodeLocation)
 	d.Hovers = make(map[string]DocumentNodeLocation)
 	d.References = make(map[string][]DocumentNodeLocation)
-	d.Diagnostics = make([]protocol.Diagnostic, 0)
 	for _, doc := range astFile.Docs {
 		ast.Walk(d, doc.Body)
 	}
@@ -246,42 +241,6 @@ func (d *Document) Visit(node ast.Node) ast.Visitor {
 				Location: d.LocationFromNode(n),
 			})
 			d.References[nodeStr] = references
-		}
-	case *ast.MappingValueNode:
-		switch n.Key.GetToken().Value {
-		case "func":
-			nodeStr := n.Value.GetToken().Value
-			_, ok := d.Workspace.Data.Functions[nodeStr]
-			if !ok {
-				d.Diagnostics = append(d.Diagnostics, protocol.Diagnostic{
-					Source:  "evergreenlsp",
-					Message: fmt.Sprintf("function %q is not defined", nodeStr),
-					Range:   util.RangeFromNode(n.Value, nil),
-				})
-			}
-
-		case "command":
-			nodeStr := n.Value.GetToken().Value
-			deprecated := slices.Contains(deprecatedCommands, nodeStr)
-			if deprecated {
-				d.Diagnostics = append(d.Diagnostics, protocol.Diagnostic{
-					Source:   "evergreenlsp",
-					Message:  fmt.Sprintf("command %q is deprecated", nodeStr),
-					Severity: protocol.DiagnosticSeverityWarning,
-					Range:    util.RangeFromNode(n.Value, nil),
-				})
-			} else {
-				commands := command.RegisteredCommandNames()
-				ok := slices.Contains(commands, nodeStr)
-				if !ok {
-					d.Diagnostics = append(d.Diagnostics, protocol.Diagnostic{
-						Source:  "evergreenlsp",
-						Message: fmt.Sprintf("command %q is not defined", nodeStr),
-						Range:   util.RangeFromNode(n.Value, nil),
-					})
-				}
-			}
-
 		}
 	case *ast.MappingNode:
 		if n.Path == "$.functions" {
