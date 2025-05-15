@@ -14,15 +14,17 @@ import (
 )
 
 type Handler struct {
-	conn    *jsonrpc2.Conn
-	request chan protocol.DocumentURI
-	config  *config.Config
+	conn          *jsonrpc2.Conn
+	request       chan protocol.DocumentURI
+	config        *config.Config
+	openDocuments map[protocol.DocumentURI]struct{}
 }
 
 //nolint:ireturn
 func NewHandler() jsonrpc2.Handler {
 	handler := &Handler{
-		request: make(chan protocol.DocumentURI),
+		request:       make(chan protocol.DocumentURI),
+		openDocuments: make(map[protocol.DocumentURI]struct{}),
 	}
 	return jsonrpc2.HandlerWithError(handler.Handle)
 }
@@ -39,6 +41,8 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		return nil, nil
 	case protocol.MethodTextDocumentDidOpen:
 		return nil, h.handleTextDocumentDidOpen(ctx, req)
+	case protocol.MethodTextDocumentDidClose:
+		return nil, h.handleTextDocumentDidClose(ctx, req)
 	case protocol.MethodTextDocumentDidChange:
 		return nil, h.handleTextDocumentDidChange(ctx, req)
 	case protocol.MethodTextDocumentDidSave:
