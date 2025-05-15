@@ -18,14 +18,14 @@ type Config struct {
 }
 
 type Lint struct {
-	EnforceTags           bool  `yaml:"enforce_tags"`
-	ScriptComplexityLimit uint8 `yaml:"script_complexity_limit"`
+	EnforceTags     bool `yaml:"enforce_tags"`
+	NoInlineScripts bool `yaml:"no_inline_scripts"`
 }
 
 const (
-	ConfigFileName               = "evergreenlsp.config.yaml"
-	DefaultEnforceTags           = true
-	DefaultScriptComplexityLimit = 5
+	ConfigFileName         = "evergreenlsp.config.yaml"
+	DefaultEnforceTags     = true
+	DefaultNoInlineScripts = true
 )
 
 func NewWithDefaults(ctx context.Context, workspacePath string) (*Config, error) {
@@ -37,8 +37,8 @@ func NewWithDefaults(ctx context.Context, workspacePath string) (*Config, error)
 	config := Config{
 		Projects: []*project.Project{project.New("evergreen.yml")},
 		Lint: Lint{
-			EnforceTags:           DefaultEnforceTags,
-			ScriptComplexityLimit: DefaultScriptComplexityLimit,
+			EnforceTags:     DefaultEnforceTags,
+			NoInlineScripts: DefaultNoInlineScripts,
 		},
 	}
 	err = yaml.Unmarshal(f, &config)

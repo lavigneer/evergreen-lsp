@@ -1,13 +1,16 @@
 package reporter
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/a-h/templ/lsp/protocol"
 )
 
 type Reporter interface {
-	ReportDiagnostics(diagnostics []protocol.Diagnostic)
+	Init()
+	ReportDiagnostics(ctx context.Context, diagnostics []protocol.Diagnostic)
+	ReportSummary(ctx context.Context)
 }
 
 func diagnosticSeverityToLogLevel(s protocol.DiagnosticSeverity) slog.Level {

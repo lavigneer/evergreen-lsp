@@ -31,6 +31,7 @@ var lintCmd = &cobra.Command{
 			return err
 		}
 		rep := reporter.Default{}
+		rep.Init()
 		for _, p := range cfg.Projects {
 			lintExecutor := lint.New(p, cfg.Lint)
 			diagnostics, err := lintExecutor.Lint()
@@ -38,8 +39,8 @@ var lintCmd = &cobra.Command{
 				slog.Error("Could not lint project", "project", p.Path())
 			}
 			rep.ReportDiagnostics(cmd.Context(), diagnostics)
-
 		}
+		rep.ReportSummary(cmd.Context())
 		return nil
 	},
 }

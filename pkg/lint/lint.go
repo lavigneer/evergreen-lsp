@@ -26,6 +26,7 @@ var linters = []Linter{
 	&DeprecatedLinter{},
 	&UndefinedLinter{},
 	&EnforceTagsLinter{},
+	&NoInlineScriptsLinter{},
 }
 
 func New(workspace *project.Project, settings config.Lint) *Executor {

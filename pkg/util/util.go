@@ -6,6 +6,7 @@ import (
 	"github.com/a-h/templ/lsp/protocol"
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
+	"github.com/goccy/go-yaml/token"
 )
 
 func NodeToDedentedYaml(ctx context.Context, n ast.Node) (string, error) {
@@ -23,12 +24,22 @@ func NodeToDedentedYaml(ctx context.Context, n ast.Node) (string, error) {
 }
 
 func RangeFromNode(n ast.Node, offsetNode ast.Node) protocol.Range {
-	token := n.GetToken()
-	line := uint32(token.Position.Line) - 1
-	character := uint32(token.Position.Column) - 1
+	var t *token.Token
+	switch node := n.(type) {
+	case *ast.MappingValueNode:
+		t = node.Key.GetToken()
+	default:
+		t = node.GetToken()
+	}
+	line := uint32(t.Position.Line) - 1
+	character := uint32(t.Position.Column) - 1
 	if offsetNode != nil {
 		offsetNodeToken := offsetNode.GetToken()
 		line += uint32(offsetNodeToken.Position.Line) + 1
+	}
+	if n.GetComment() != nil {
+		line++
+		// line += uint32(n.GetComment().GetToken().Position.Line)
 	}
 	return protocol.Range{
 		Start: protocol.Position{
@@ -37,7 +48,7 @@ func RangeFromNode(n ast.Node, offsetNode ast.Node) protocol.Range {
 		},
 		End: protocol.Position{
 			Line:      line,
-			Character: character + uint32(len(token.Origin)) - 1,
+			Character: character + uint32(len(t.Origin)) - 1,
 		},
 	}
 }
