@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/a-h/templ/lsp/protocol"
 	"github.com/goccy/go-yaml"
 	"github.com/lavigneer/evergreen-lsp/pkg/project"
 )
@@ -15,6 +16,23 @@ import (
 type Config struct {
 	Projects []*project.Project `yaml:"projects"`
 	Lint     Lint               `yaml:"lint"`
+}
+
+type ProjDocResult struct {
+	Project  *project.Project
+	Document *project.Document
+}
+
+func (c *Config) FindProjDoc(docURI protocol.DocumentURI) (*ProjDocResult, bool) {
+	for _, p := range c.Projects {
+		if d, ok := p.TextDocuments[docURI]; ok {
+			return &ProjDocResult{
+				Project:  p,
+				Document: d,
+			}, true
+		}
+	}
+	return nil, false
 }
 
 type Lint struct {

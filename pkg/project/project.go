@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
+	"github.com/a-h/templ/lsp/uri"
 	"github.com/evergreen-ci/evergreen/agent/command"
 	"github.com/evergreen-ci/evergreen/model"
 	"github.com/goccy/go-yaml"
@@ -56,7 +57,7 @@ func (w *Project) Init(ctx context.Context) error {
 	}
 
 	w.AddDocument(ctx, protocol.TextDocumentItem{
-		URI:        protocol.DocumentURI(w.Path()),
+		URI:        uri.File(w.Path()),
 		LanguageID: "yaml",
 		Version:    0,
 		Text:       string(cfg),
@@ -86,7 +87,7 @@ func (w *Project) Init(ctx context.Context) error {
 			continue
 		}
 		_, err = w.AddDocument(ctx, protocol.TextDocumentItem{
-			URI:        protocol.DocumentURI(p),
+			URI:        uri.File(p),
 			LanguageID: "yaml",
 			Version:    0,
 			Text:       string(docText),
@@ -121,6 +122,7 @@ func (w *Project) loadProject(ctx context.Context, cfg []byte) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -284,7 +286,7 @@ func (d *Document) Visit(node ast.Node) ast.Visitor {
 	case *ast.MappingNode:
 		if n.Path == "$.functions" {
 			for _, v := range n.Values {
-				nodeStr := v.Key.String()
+				nodeStr := v.Key.GetToken().Value
 				_, ok := d.Workspace.Data.Functions[nodeStr]
 				if ok {
 					d.Definitions[nodeStr] = DocumentNodeLocation{

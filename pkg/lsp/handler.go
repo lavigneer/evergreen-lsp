@@ -4,21 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"log/slog"
-	"path/filepath"
 	"strings"
 
 	"github.com/a-h/templ/lsp/protocol"
-	"github.com/lavigneer/evergreen-lsp/pkg/project"
+	"github.com/a-h/templ/lsp/uri"
+	"github.com/lavigneer/evergreen-lsp/pkg/config"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
 type Handler struct {
-	conn             *jsonrpc2.Conn
-	request          chan protocol.DocumentURI
-	workspaceFolders []protocol.WorkspaceFolder
-	project          *project.Project
+	conn    *jsonrpc2.Conn
+	request chan protocol.DocumentURI
+	config  *config.Config
 }
 
 //nolint:ireturn
@@ -66,30 +64,23 @@ func (h *Handler) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req
 		return nil, err
 	}
 
-	h.workspaceFolders = params.WorkspaceFolders
-	h.conn = conn
-
-	slog.Debug("Initialized", "workspaceFolders", params.WorkspaceFolders)
-
-	var configPath string
-	for _, f := range params.WorkspaceFolders {
-		fPath := uriToPath(f.URI)
-		filepath.WalkDir(fPath, func(path string, d fs.DirEntry, err error) error {
-			if d.Name() == "evergreen.yml" || d.Name() == "evergreen.yaml" {
-				configPath = path
-				return filepath.SkipAll
-			}
-			return nil
-		})
-		if configPath != "" {
-			break
-		}
+	if len(params.WorkspaceFolders) == 0 {
+		return nil, nil
 	}
-	h.project = project.New(configPath)
-	err := h.project.Init(ctx)
+
+	dir := params.WorkspaceFolders[0]
+	workspaceRoot, err := config.FindWorkspaceRoot(uri.New(dir.URI).Filename())
 	if err != nil {
 		return nil, err
 	}
+	cfg, err := config.NewWithDefaults(ctx, workspaceRoot)
+	if err != nil {
+		return nil, err
+	}
+	h.config = cfg
+	h.conn = conn
+
+	slog.Debug("Initialized", "workspaceFolders", params.WorkspaceFolders)
 
 	return protocol.InitializeResult{
 		Capabilities: protocol.ServerCapabilities{

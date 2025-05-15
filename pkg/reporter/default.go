@@ -56,7 +56,8 @@ func (d *Default) ReportDiagnostics(ctx context.Context, diagnostics lint.Execut
 
 func (d *Default) ReportSummary(ctx context.Context) {
 	fmt.Printf("*** Summary ***:\n")
-	d.writer.Write([]byte("\t[Rule]\t[Count]\n"))
+	d.writer.Write([]byte("\tRule\tCount\n"))
+	d.writer.Write([]byte("\t----\t-----\n"))
 	for t, c := range d.totalByType {
 		fmt.Fprintf(d.writer, "\t%s\t%d\n", t, c)
 	}

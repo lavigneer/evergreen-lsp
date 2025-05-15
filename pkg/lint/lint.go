@@ -45,7 +45,7 @@ func New(workspace *project.Project, settings config.Lint) *Executor {
 
 func (e *Executor) Lint() (ExecutorDiagnostics, error) {
 	for _, v := range e.workspace.TextDocuments {
-		visitor := LintVisitor{
+		visitor := Visitor{
 			diagnostics: make([]protocol.Diagnostic, 0),
 			linters:     e.linters,
 		}
@@ -56,12 +56,25 @@ func (e *Executor) Lint() (ExecutorDiagnostics, error) {
 	return e.diagnostics, nil
 }
 
-type LintVisitor struct {
+func (e *Executor) LintDocument(doc protocol.DocumentURI) ([]protocol.Diagnostic, error) {
+	if d, ok := e.workspace.TextDocuments[doc]; ok {
+		visitor := Visitor{
+			diagnostics: make([]protocol.Diagnostic, 0),
+			linters:     e.linters,
+		}
+		ast.Walk(&visitor, d.RootNode())
+		return visitor.diagnostics, nil
+
+	}
+	return nil, nil
+}
+
+type Visitor struct {
 	diagnostics []protocol.Diagnostic
 	linters     []Linter
 }
 
-func (l *LintVisitor) Visit(node ast.Node) ast.Visitor {
+func (l *Visitor) Visit(node ast.Node) ast.Visitor {
 	for _, linter := range l.linters {
 		linterDiagnostics := linter.Check(node)
 		l.diagnostics = append(l.diagnostics, linterDiagnostics...)

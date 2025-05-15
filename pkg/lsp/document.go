@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/a-h/templ/lsp/protocol"
+	"github.com/lavigneer/evergreen-lsp/pkg/lint"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -13,8 +14,11 @@ func (h *Handler) handleTextDocumentDidChange(ctx context.Context, req *jsonrpc2
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return err
 	}
-	_, err := h.project.UpdateDocument(ctx, params.TextDocument, params.ContentChanges[0])
-	return err
+	if res, ok := h.config.FindProjDoc(params.TextDocument.URI); ok {
+		_, err := res.Project.UpdateDocument(ctx, params.TextDocument, params.ContentChanges[0])
+		return err
+	}
+	return nil
 }
 
 func (h *Handler) handleTextDocumentDidOpen(ctx context.Context, req *jsonrpc2.Request) error {
@@ -22,17 +26,26 @@ func (h *Handler) handleTextDocumentDidOpen(ctx context.Context, req *jsonrpc2.R
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return err
 	}
-	doc, err := h.project.AddDocument(ctx, params.TextDocument)
-	if err != nil {
+	err := h.notifyDiagnostics(ctx, params.TextDocument.URI)
+	return err
+}
+
+func (h *Handler) notifyDiagnostics(ctx context.Context, docURI protocol.DocumentURI) error {
+	if res, ok := h.config.FindProjDoc(docURI); ok {
+		lintExecutor := lint.New(res.Project, h.config.Lint)
+		diagnostics, err := lintExecutor.LintDocument(res.Document.URI)
+		if err != nil {
+			return err
+		}
+		err = h.conn.Notify(ctx, protocol.MethodTextDocumentPublishDiagnostics, protocol.PublishDiagnosticsParams{
+			URI: res.Document.URI,
+			//nolint:gosec
+			Version:     uint32(res.Document.Version),
+			Diagnostics: diagnostics,
+		})
 		return err
 	}
-	err = h.conn.Notify(ctx, protocol.MethodTextDocumentPublishDiagnostics, protocol.PublishDiagnosticsParams{
-		URI: doc.URI,
-		//nolint:gosec
-		Version:     uint32(doc.Version),
-		Diagnostics: doc.Diagnostics,
-	})
-	return err
+	return nil
 }
 
 func (h *Handler) handleTextDocumentDidSave(ctx context.Context, req *jsonrpc2.Request) error {
@@ -40,15 +53,6 @@ func (h *Handler) handleTextDocumentDidSave(ctx context.Context, req *jsonrpc2.R
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return err
 	}
-	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
-	if !ok {
-		return ErrDocumentNotFound
-	}
-	err := h.conn.Notify(ctx, protocol.MethodTextDocumentPublishDiagnostics, protocol.PublishDiagnosticsParams{
-		URI: doc.URI,
-		//nolint:gosec
-		Version:     uint32(doc.Version),
-		Diagnostics: doc.Diagnostics,
-	})
+	err := h.notifyDiagnostics(ctx, params.TextDocument.URI)
 	return err
 }

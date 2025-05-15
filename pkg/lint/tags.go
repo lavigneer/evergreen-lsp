@@ -32,7 +32,7 @@ func (l *EnforceTagsLinter) Check(node ast.Node) []protocol.Diagnostic {
 			nameNodes := []ast.Node{}
 			_ = path.Read(n.Value, &nameNodes)
 			for _, name := range nameNodes {
-				names := strings.Split(name.String(), " ")
+				names := strings.Split(name.GetToken().Value, " ")
 				usesDirectName := slices.ContainsFunc(names, func(n string) bool {
 					return n != "*" && !strings.HasPrefix(n, "!.") && !strings.HasPrefix(n, ".")
 				})

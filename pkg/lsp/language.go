@@ -18,32 +18,31 @@ func (h *Handler) handleTextDocumentCompletion(ctx context.Context, req *jsonrpc
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
 	}
-	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
-	if !ok {
-		return nil, ErrDocumentNotFound
-	}
-	node, err := doc.NodeFromLocation(params.Position)
-	if err != nil {
-		return nil, err
-	}
-	r := doc.LocationFromNode(node).Range
-	items := []protocol.CompletionItem{}
-	parent := ast.Parent(doc.RootNode(), node)
-	if parent.Type() == ast.MappingValueType {
-		//nolint:forcetypeassert // we already check the type above
-		parentNode := parent.(*ast.MappingValueNode)
-		switch parentNode.Key.String() {
-		case "func":
-			items = funcComplete(ctx, h.project.Data, r)
-		case "command":
-			items = commandComplete()
+	if res, ok := h.config.FindProjDoc(params.TextDocument.URI); ok {
+		node, err := res.Document.NodeFromLocation(params.Position)
+		if err != nil {
+			return nil, err
 		}
+		r := res.Document.LocationFromNode(node).Range
+		items := []protocol.CompletionItem{}
+		parent := ast.Parent(res.Document.RootNode(), node)
+		if parent.Type() == ast.MappingValueType {
+			//nolint:forcetypeassert // we already check the type above
+			parentNode := parent.(*ast.MappingValueNode)
+			switch parentNode.Key.GetToken().Value {
+			case "func":
+				items = funcComplete(ctx, res.Project.Data, r)
+			case "command":
+				items = commandComplete()
+			}
 
+		}
+		return protocol.CompletionList{
+			IsIncomplete: false,
+			Items:        items,
+		}, nil
 	}
-	return protocol.CompletionList{
-		IsIncomplete: false,
-		Items:        items,
-	}, nil
+	return nil, ErrDocumentNotFound
 }
 
 func funcComplete(ctx context.Context, project *model.Project, r protocol.Range) []protocol.CompletionItem {
@@ -85,18 +84,17 @@ func (h *Handler) handleTextDocumentDefinition(ctx context.Context, req *jsonrpc
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
 	}
-	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
-	if !ok {
-		return nil, ErrDocumentNotFound
-	}
-	node, err := doc.NodeFromLocation(params.Position)
-	if err != nil {
-		return nil, err
-	}
+	if res, ok := h.config.FindProjDoc(params.TextDocument.URI); ok {
+		node, err := res.Document.NodeFromLocation(params.Position)
+		if err != nil {
+			return nil, err
+		}
 
-	nodeStr := node.String()
-	def := h.project.Definition(ctx, nodeStr)
-	return def, nil
+		nodeStr := node.GetToken().Value
+		def := res.Project.Definition(ctx, nodeStr)
+		return def, nil
+	}
+	return nil, ErrDocumentNotFound
 }
 
 func (h *Handler) handleTextDocumentHover(ctx context.Context, req *jsonrpc2.Request) (any, error) {
@@ -105,18 +103,17 @@ func (h *Handler) handleTextDocumentHover(ctx context.Context, req *jsonrpc2.Req
 		return nil, err
 	}
 
-	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
-	if !ok {
-		return nil, ErrDocumentNotFound
-	}
-	node, err := doc.NodeFromLocation(params.Position)
-	if err != nil {
-		return nil, err
-	}
+	if res, ok := h.config.FindProjDoc(params.TextDocument.URI); ok {
+		node, err := res.Document.NodeFromLocation(params.Position)
+		if err != nil {
+			return nil, err
+		}
 
-	nodeStr := node.String()
-	def := h.project.Hover(ctx, nodeStr)
-	return def, nil
+		nodeStr := node.GetToken().Value
+		def := res.Project.Hover(ctx, nodeStr)
+		return def, nil
+	}
+	return nil, ErrDocumentNotFound
 }
 
 func (h *Handler) handleTextDocumentReferences(ctx context.Context, req *jsonrpc2.Request) (any, error) {
@@ -124,18 +121,17 @@ func (h *Handler) handleTextDocumentReferences(ctx context.Context, req *jsonrpc
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
 	}
-	doc, ok := h.project.TextDocuments[params.TextDocument.URI]
-	if !ok {
-		return nil, ErrDocumentNotFound
-	}
-	node, err := doc.NodeFromLocation(params.Position)
-	if err != nil {
-		return nil, err
-	}
+	if res, ok := h.config.FindProjDoc(params.TextDocument.URI); ok {
+		node, err := res.Document.NodeFromLocation(params.Position)
+		if err != nil {
+			return nil, err
+		}
 
-	nodeStr := node.String()
-	refs := h.project.References(ctx, nodeStr)
-	return refs, nil
+		nodeStr := node.GetToken().Value
+		refs := res.Project.References(ctx, nodeStr)
+		return refs, nil
+	}
+	return nil, ErrDocumentNotFound
 }
 
 var ErrDocumentNotFound = errors.New("document not found")
