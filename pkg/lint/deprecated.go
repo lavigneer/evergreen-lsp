@@ -35,7 +35,7 @@ func (l *DeprecatedLinter) Check(node ast.Node) []protocol.Diagnostic {
 					Source:   "deprecated-command",
 					Message:  fmt.Sprintf("command %q is deprecated", nodeStr),
 					Severity: protocol.DiagnosticSeverityWarning,
-					Range:    util.RangeFromNode(n.Value),
+					Range:    util.RangeFromNode(n.Value, nil),
 				})
 			}
 		}

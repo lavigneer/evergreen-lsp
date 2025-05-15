@@ -35,7 +35,7 @@ func (l *UndefinedLinter) Check(node ast.Node) []protocol.Diagnostic {
 					Severity: protocol.DiagnosticSeverityError,
 					Source:   "no-undefined",
 					Message:  fmt.Sprintf("function %q is not defined", nodeStr),
-					Range:    util.RangeFromNode(n.Value),
+					Range:    util.RangeFromNode(n.Value, nil),
 				})
 			}
 
@@ -48,7 +48,7 @@ func (l *UndefinedLinter) Check(node ast.Node) []protocol.Diagnostic {
 					Severity: protocol.DiagnosticSeverityError,
 					Source:   "no-undefined",
 					Message:  fmt.Sprintf("command %q is not defined", nodeStr),
-					Range:    util.RangeFromNode(n.Value),
+					Range:    util.RangeFromNode(n.Value, nil),
 				})
 			}
 

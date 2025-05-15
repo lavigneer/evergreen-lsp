@@ -254,7 +254,7 @@ func (d *Document) Visit(node ast.Node) ast.Visitor {
 				d.Diagnostics = append(d.Diagnostics, protocol.Diagnostic{
 					Source:  "evergreenlsp",
 					Message: fmt.Sprintf("function %q is not defined", nodeStr),
-					Range:   util.RangeFromNode(n.Value),
+					Range:   util.RangeFromNode(n.Value, nil),
 				})
 			}
 
@@ -266,7 +266,7 @@ func (d *Document) Visit(node ast.Node) ast.Visitor {
 					Source:   "evergreenlsp",
 					Message:  fmt.Sprintf("command %q is deprecated", nodeStr),
 					Severity: protocol.DiagnosticSeverityWarning,
-					Range:    util.RangeFromNode(n.Value),
+					Range:    util.RangeFromNode(n.Value, nil),
 				})
 			} else {
 				commands := command.RegisteredCommandNames()
@@ -275,7 +275,7 @@ func (d *Document) Visit(node ast.Node) ast.Visitor {
 					d.Diagnostics = append(d.Diagnostics, protocol.Diagnostic{
 						Source:  "evergreenlsp",
 						Message: fmt.Sprintf("command %q is not defined", nodeStr),
-						Range:   util.RangeFromNode(n.Value),
+						Range:   util.RangeFromNode(n.Value, nil),
 					})
 				}
 			}
@@ -303,7 +303,7 @@ func (d *Document) Visit(node ast.Node) ast.Visitor {
 }
 
 func (d *Document) LocationFromNode(n ast.Node) protocol.Location {
-	r := util.RangeFromNode(n)
+	r := util.RangeFromNode(n, nil)
 	return protocol.Location{
 		URI:   d.URI,
 		Range: r,

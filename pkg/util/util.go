@@ -22,10 +22,14 @@ func NodeToDedentedYaml(ctx context.Context, n ast.Node) (string, error) {
 	return string(defYaml), nil
 }
 
-func RangeFromNode(n ast.Node) protocol.Range {
+func RangeFromNode(n ast.Node, offsetNode ast.Node) protocol.Range {
 	token := n.GetToken()
 	line := uint32(token.Position.Line) - 1
 	character := uint32(token.Position.Column) - 1
+	if offsetNode != nil {
+		offsetNodeToken := offsetNode.GetToken()
+		line += uint32(offsetNodeToken.Position.Line) + 1
+	}
 	return protocol.Range{
 		Start: protocol.Position{
 			Line:      line,
