@@ -45,8 +45,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect
 	github.com/aws/smithy-go v1.22.3 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/bradleyfalzon/ghinstallation v1.1.1 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cheynewallace/tabby v1.1.1 // indirect
 	github.com/cloudflare/circl v1.3.5 // indirect
@@ -99,12 +101,15 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/invopop/jsonschema v0.12.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-xmpp v0.0.1 // indirect
+	github.com/metoro-io/mcp-golang v0.12.0 // indirect
 	github.com/mholt/archiver/v3 v3.5.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -134,6 +139,10 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/trivago/tgo v1.0.7 // indirect
@@ -141,6 +150,7 @@ require (
 	github.com/urfave/cli v1.22.16 // indirect
 	github.com/urfave/negroni v1.0.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.26 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
